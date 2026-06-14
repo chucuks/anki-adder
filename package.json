@@ -1,0 +1,60 @@
+{
+    "name": "anki-adder",
+    "version": "1.0.0",
+    "description": "Oxford Dictionary to Anki automation tool",
+    "main": "dist/server.js",
+    "bin": {
+        "anki-adder": "dist/server.js"
+    },
+    "scripts": {
+        "clean": "rm -rf dist/ public/js/bundle.js android/app/build/",
+        "build": "npm run clean && esbuild src/client-app.ts --bundle --minify --outfile=public/js/bundle.js --platform=browser",
+        "build:web": "esbuild src/web-app.ts --bundle --minify --outfile=public/js/bundle.js --platform=browser",
+        "build:server": "tsc src/server.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck",
+        "start": "node dist/server.js",
+        "dev": "npm run build:web && ts-node src/server.ts",
+        "package": "npm run build && pkg . --targets node24-linux-x64 --output ../anki-adder",
+        "android": "cap run android",
+        "sync": "cap sync",
+        "test": "vitest run --coverage"
+    },
+    "keywords": [
+        "anki",
+        "oxford",
+        "dictionary",
+        "flashcards"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "@capacitor/android": "^5.6.0",
+        "@capacitor/core": "^5.6.0",
+        "@capacitor/preferences": "^5.0.7",
+        "com-darryncampbell-cordova-plugin-intent": "^2.0.0",
+        "node-fetch": "^2.7.0",
+        "node-html-parser": "^7.0.2"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^5.6.0",
+        "@types/node": "^20.10.0",
+        "@types/node-fetch": "^2.6.13",
+        "@vitest/coverage-istanbul": "^4.1.4",
+        "@vitest/coverage-v8": "^4.1.2",
+        "@vitest/ui": "^4.1.2",
+        "esbuild": "^0.27.2",
+        "jsdom": "^29.0.2",
+        "pkg": "^5.8.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.0",
+        "vitest": "^4.1.2"
+    },
+    "pkg": {
+        "scripts": "dist/**/*.js",
+        "assets": [
+            "public/**/*"
+        ],
+        "targets": [
+            "node24-linux-x64"
+        ],
+        "outputPath": ".."
+    }
+}

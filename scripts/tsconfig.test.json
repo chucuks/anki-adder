@@ -1,0 +1,15 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@capacitor/core": [
+                "./mock-capacitor.ts"
+            ],
+            "@capacitor/preferences": [
+                "./mock-capacitor.ts"
+            ]
+        },
+        "module": "commonjs"
+    }
+}

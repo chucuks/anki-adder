@@ -1,0 +1,100 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Build outputs
+dist/
+build/
+bin/
+out/
+public/js/bundle.js
+anki-adder
+oxford-anki
+*.exe
+*.dat
+*.apk
+*.aar
+*.ap_
+*.dex
+*.js.map
+*.css.map
+
+# TypeScript
+*.tsbuildinfo
+tslint-cache.json
+
+# Testing and Coverage
+coverage/
+*.lcov
+.nyc_output/
+.vitest-results/
+
+# Android / Capacitor
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/raw/
+*.jks
+*.keystore
+*.p12
+*.jks.gpg
+google-services.json
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+.env.sample
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+Icon
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.agents/
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# Misc
+*.bak
+burly_debug.html
+scratch/
+temp/
+tmp/
+.temp/
+.tmp/
