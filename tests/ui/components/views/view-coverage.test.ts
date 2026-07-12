@@ -47,7 +47,7 @@ describe('UI Views Coverage', () => {
     store = new Store({
         theme: 'standard', font: 'outfit', language: 'en', fontSize: 16, autoSearchDelay: 1000,
         allTags: [], tagGroups: [], deckTags: {}, selectedMeanings: new Set(),
-        searchResults: [], isSearching: false, isAdding: false,
+        searchResults: [], highlightedExamples: [], isSearching: false, isAdding: false,
         existingIndices: new Set(), totalExistingCount: 0, currentWord: '',
         selectedGroupInManagerId: null, tagDeleteMode: false, groupDeleteMode: false,
         globalTagSearchQuery: '', globalGroupSearchQuery: '', hideExistingResults: false,

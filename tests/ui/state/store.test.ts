@@ -8,7 +8,7 @@ describe('UI / State / Store', () => {
         showIdioms: true, audioMode: 'none', autoSearchEnabled: false, autoSearchDelay: 1000,
         frontSideMode: 'example', allTags: [], tagGroups: [], deckTags: {}, 
         deckTagGroupHistory: {}, autoPosTagging: false, hideSingularTags: false,
-        selectedMeanings: new Set(), searchResults: [], isSearching: false, isAdding: false,
+        selectedMeanings: new Set(), searchResults: [], highlightedExamples: [], isSearching: false, isAdding: false,
         existingIndices: new Set(), totalExistingCount: 0, currentWord: '',
         selectedGroupInManagerId: null, tagDeleteMode: false, groupDeleteMode: false,
         globalTagSearchQuery: '', globalGroupSearchQuery: '', dashboardTagSearchQuery: '',
@@ -117,5 +117,12 @@ describe('UI / State / Store', () => {
         store.subscribe('theme', throwingListener, false);
         
         expect(() => store.update('theme', 'midnight')).not.toThrow();
+    });
+
+    it('should deep copy highlightedExamples array in getState', () => {
+        store.update('highlightedExamples', ['ex1', 'ex2']);
+        const state = store.getState();
+        state.highlightedExamples.push('ex3');
+        expect(store.getState().highlightedExamples).toEqual(['ex1', 'ex2']);
     });
 });

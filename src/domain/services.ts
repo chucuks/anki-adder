@@ -103,6 +103,8 @@ export class HighlightingService {
             .replace(PAREN_ABBREVIATIONS, '')
             .replace(WORD_ABBREVIATIONS, '')
             .replace(PUNCTUATION, ' ')
+            .replace(/\s*\([^)]*\)\s*$/, '')
+            .replace(/\s*\[[^\]]*\]\s*$/, '')
             .trim();
     }
 

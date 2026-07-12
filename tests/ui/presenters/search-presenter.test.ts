@@ -16,6 +16,7 @@ describe('UI / Presenters / SearchPresenter', () => {
         lastSelectedDeck: 'Default',
         isSearching: false,
         searchResults: [],
+        highlightedExamples: [],
         selectedMeanings: new Set(),
         currentWord: '',
         existingIndices: new Set(),
@@ -161,5 +162,78 @@ describe('UI / Presenters / SearchPresenter', () => {
         store.update('showIdioms', false);
         const lastCallArg = mockResultView.showExistingHint.mock.lastCall?.[0];
         expect(lastCallArg).toBe(2);
+    });
+
+    it('should reset highlightedExamples and existingIndices on new search', async () => {
+        // Simulate previous search having data
+        store.update('highlightedExamples', ['old highlight']);
+        store.update('existingIndices', new Set([0]));
+        store.update('totalExistingCount', 1);
+
+        await presenter.handleSearch(true);
+        const state = store.getState();
+        // highlightedExamples is reset then recomputed (empty because mock meaning has no example)
+        expect(state.highlightedExamples).toEqual(['']);
+        // Old data should NOT persist
+        expect(state.highlightedExamples).not.toContain('old highlight');
+        expect(state.existingIndices.size).toBe(0);
+        expect(state.totalExistingCount).toBe(0);
+    });
+
+    it('should clear all derived fields on clearSearch', () => {
+        store.update('searchResults', [{ word: 'test', definition: 'd', example: 'e', pos: 'n', type: 'normal' }]);
+        store.update('highlightedExamples', ['highlight']);
+        store.update('existingIndices', new Set([0]));
+        store.update('totalExistingCount', 1);
+
+        (mockView.getWordInput as any).mockReturnValue('');
+        presenter.clearSearch();
+
+        const state = store.getState();
+        expect(state.searchResults).toEqual([]);
+        expect(state.highlightedExamples).toEqual([]);
+        expect(state.existingIndices.size).toBe(0);
+        expect(state.totalExistingCount).toBe(0);
+    });
+
+    it('should call renderResults when highlightedExamples changes', () => {
+        const initialCalls = mockResultView.renderMeanings.mock.calls.length;
+        store.update('highlightedExamples', ['new example']);
+        // The subscription should trigger renderResults → renderMeanings
+        expect(mockResultView.renderMeanings.mock.calls.length).toBeGreaterThan(initialCalls);
+    });
+
+    it('should call renderResults when existingIndices changes', () => {
+        const initialCalls = mockResultView.renderMeanings.mock.calls.length;
+        store.update('existingIndices', new Set([0]));
+        expect(mockResultView.renderMeanings.mock.calls.length).toBeGreaterThan(initialCalls);
+    });
+
+    it('should skip autoSearch when isSearching is true', () => {
+        store.update('isSearching', true);
+        const searchWordCalls = mockUseCase.searchWord.mock.calls.length;
+        presenter.handleAutoSearch();
+        // Should not schedule/search since isSearching is true
+        expect(mockUseCase.searchWord.mock.calls.length).toBe(searchWordCalls);
+    });
+
+    it('should retry handleSearch in finally when input changed during search', async () => {
+        vi.useFakeTimers();
+        // Make the first search slow, simulating a network request
+        let resolveFirst: (v: any) => void;
+        const firstSearch = new Promise(resolve => { resolveFirst = resolve; });
+        mockUseCase.searchWord.mockReturnValueOnce(firstSearch);
+
+        // Start the first search
+        const searchPromise = presenter.handleSearch(true);
+        // Change input while search is in-flight
+        (mockView.getWordInput as any).mockReturnValue('new-word');
+        // Resolve the first search
+        resolveFirst!({ meanings: [{ id: 2, word: 'new-word' }], error: null });
+        // The finally block should see the new input and trigger handleSearch again
+        await searchPromise;
+        // searchWord called on first handleSearch + retry in finally
+        expect(mockUseCase.searchWord).toHaveBeenCalledTimes(2);
+        vi.useRealTimers();
     });
 });

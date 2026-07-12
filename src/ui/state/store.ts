@@ -3,6 +3,7 @@ import { AppSettings, WordMeaning } from '../../domain/entities';
 export type AppState = AppSettings & {
     selectedMeanings: Set<number>;
     searchResults: WordMeaning[];
+    highlightedExamples: string[];
     isSearching: boolean;
     isAdding: boolean;
     existingIndices: Set<number>;
@@ -28,6 +29,7 @@ function deepCopyAppState(state: AppState): AppState {
         selectedMeanings: new Set(state.selectedMeanings),
         existingIndices: new Set(state.existingIndices),
         searchResults: (state.searchResults || []).map(r => ({ ...r })),
+        highlightedExamples: [...(state.highlightedExamples || [])],
     };
 }
 

@@ -116,6 +116,40 @@ const SENSE_IN_IDIOMS_DIV = `
   </div>
 </body></html>`;
 
+/** HTML using Oxford's hclass custom attributes instead of class (new template) */
+const HCLASS_ONLY_HTML = `
+<html><body>
+  <div hclass="webtop"><span hclass="pos">adjective</span></div>
+  <ul>
+    <li hclass="sense">
+      <span hclass="def">of a higher standard</span>
+      <span hclass="x">This is better.</span>
+    </li>
+    <li hclass="sense">
+      <span hclass="def">more suitable</span>
+      <span hclass="x">That is more suitable.</span>
+    </li>
+  </ul>
+  <div hclass="idioms">
+    <span hclass="idm-g">
+      <span hclass="idm">the better part</span>
+      <ul>
+        <li hclass="sense">
+          <span hclass="def">most of something</span>
+        </li>
+      </ul>
+    </span>
+  </div>
+  <div hclass="pv-g">
+    <span hclass="pv">better off</span>
+    <ul>
+      <li hclass="sense">
+        <span hclass="def">in a more advantageous position</span>
+      </li>
+    </ul>
+  </div>
+</body></html>`;
+
 /** Covers getBestExample with multiple examples and punctuation preference */
 const MULTIPLE_EXAMPLES_HTML = `
 <html><body>
@@ -280,6 +314,24 @@ describe('Infrastructure / OxfordScraperAdapter', () => {
       expect(meanings.every(m => m.definition !== 'should be skipped')).toBe(true);
     });
 
+    it('should strip parenthetical usage notes from idiomText', async () => {
+      const html = `
+      <html><body>
+        <div class="webtop"><span class="pos">noun</span></div>
+        <div class="idioms">
+          <div class="idm-g">
+            <span class="idm">in tandem (with somebody/something)</span>
+            <ul><li class="sense"><span class="def">working together</span></li></ul>
+          </div>
+        </div>
+      </body></html>`;
+      mockGet.mockResolvedValue({ status: 200, data: html });
+      const { meanings } = await scraper.getWordData('tandem');
+      const idiom = meanings.find(m => m.type === 'idiom');
+      expect(idiom).toBeDefined();
+      expect(idiom?.idiomText).toBe('in tandem');
+    });
+
     it('should skip idiom sense without definition (line 62)', async () => {
       const html = `
       <html><body>
@@ -336,6 +388,24 @@ describe('Infrastructure / OxfordScraperAdapter', () => {
       expect(meanings[0].example).toBe('');
     });
 
+    it('should extract .unx examples (extra examples)', async () => {
+      const html = `
+      <html><body>
+        <div class="webtop"><span class="pos">noun</span></div>
+        <ul>
+          <li class="sense">
+            <span class="def">a trial</span>
+            <span class="x">main example.</span>
+            <span class="unx">extra example.</span>
+          </li>
+        </ul>
+      </body></html>`;
+      mockGet.mockResolvedValue({ status: 200, data: html });
+      const { meanings } = await scraper.getWordData('test');
+      // Should prefer the one ending with punctuation
+      expect(meanings[0].example).toBeTruthy();
+    });
+
     it('should return empty string when example elements are empty (covers line 79 fallback)', async () => {
       const html = `
       <html><body>
@@ -353,6 +423,134 @@ describe('Infrastructure / OxfordScraperAdapter', () => {
     });
   });
 
+  // ── HClass fallback selectors ─────────────────────────────────────────
+  describe('getWordData - hclass fallback', () => {
+    it('should work when page uses hclass attributes instead of class', async () => {
+      mockGet.mockResolvedValue({ status: 200, data: HCLASS_ONLY_HTML });
+      const { meanings, error } = await scraper.getWordData('better');
+      expect(error).toBeNull();
+      expect(meanings.length).toBe(4);
+      expect(meanings[0].definition).toBe('of a higher standard');
+      expect(meanings[1].definition).toBe('more suitable');
+    });
+
+    it('should extract idioms with hclass attributes', async () => {
+      mockGet.mockResolvedValue({ status: 200, data: HCLASS_ONLY_HTML });
+      const { meanings } = await scraper.getWordData('better');
+      const idiom = meanings.find(m => m.idiomText === 'the better part');
+      expect(idiom).toBeDefined();
+      expect(idiom?.definition).toBe('most of something');
+    });
+
+    it('should extract phrasal verbs with hclass attributes', async () => {
+      mockGet.mockResolvedValue({ status: 200, data: HCLASS_ONLY_HTML });
+      const { meanings } = await scraper.getWordData('better');
+      const pv = meanings.find(m => m.idiomText === 'better off');
+      expect(pv).toBeDefined();
+      expect(pv?.definition).toBe('in a more advantageous position');
+    });
+
+    it('should strip parenthetical usage notes from phrasal verb text', async () => {
+      const html = `
+      <html><body>
+        <div class="webtop"><span class="pos">verb</span></div>
+        <div class="pv-g">
+          <span class="pv">take off (from somebody)</span>
+          <ul><li class="sense"><span class="def">to leave the ground</span></li></ul>
+        </div>
+      </body></html>`;
+      mockGet.mockResolvedValue({ status: 200, data: html });
+      const { meanings } = await scraper.getWordData('take');
+      const pv = meanings.find(m => m.type === 'idiom' && m.pos === 'phrasal verb');
+      expect(pv).toBeDefined();
+      expect(pv?.idiomText).toBe('take off');
+    });
+
+    it('should match idiom groups with mixed class/hclass (parent class, child hclass)', async () => {
+      const html = `
+      <html><body>
+        <div class="webtop"><span class="pos">noun</span></div>
+        <div class="idioms">
+          <span hclass="idm-g">
+            <span hclass="idm">mixed test</span>
+            <ul><li hclass="sense"><span hclass="def">mixed attribute idiom</span></li></ul>
+          </span>
+        </div>
+      </body></html>`;
+      mockGet.mockResolvedValue({ status: 200, data: html });
+      const { meanings } = await scraper.getWordData('mixed');
+      const idiom = meanings.find(m => m.idiomText === 'mixed test');
+      expect(idiom).toBeDefined();
+      expect(idiom?.definition).toBe('mixed attribute idiom');
+    });
+
+    it('should match idiom groups with mixed hclass/class (parent hclass, child class)', async () => {
+      const html = `
+      <html><body>
+        <div class="webtop"><span class="pos">noun</span></div>
+        <div hclass="idioms">
+          <div class="idm-g">
+            <span class="idm">reverse mix</span>
+            <ul><li class="sense"><span class="def">reverse mixed attribute idiom</span></li></ul>
+          </div>
+        </div>
+      </body></html>`;
+      mockGet.mockResolvedValue({ status: 200, data: html });
+      const { meanings } = await scraper.getWordData('reverse');
+      const idiom = meanings.find(m => m.idiomText === 'reverse mix');
+      expect(idiom).toBeDefined();
+      expect(idiom?.definition).toBe('reverse mixed attribute idiom');
+    });
+  });
+
+  // ── Redirect handling ───────────────────────────────────────────────
+  describe('getWordData - redirect handling', () => {
+    it('should follow 302 redirect with location header', async () => {
+      mockGet
+        .mockResolvedValueOnce({ status: 302, headers: { location: 'https://www.oxfordlearnersdictionaries.com/definition/english/test_1' }, data: '' })
+        .mockResolvedValueOnce({ status: 200, data: NORMAL_PAGE_HTML });
+      const { meanings, error } = await scraper.getWordData('test');
+      expect(error).toBeNull();
+      expect(meanings.length).toBeGreaterThan(0);
+    });
+
+    it('should follow 301 redirect then 404 and retry with _1', async () => {
+      mockGet
+        .mockResolvedValueOnce({ status: 301, headers: { location: 'https://www.oxfordlearnersdictionaries.com/definition/english/test_1' }, data: '' })
+        .mockResolvedValueOnce({ status: 404, data: '' })
+        .mockResolvedValueOnce({ status: 200, data: NORMAL_PAGE_HTML });
+      const { meanings, error } = await scraper.getWordData('test');
+      expect(error).toBeNull();
+      expect(meanings.length).toBeGreaterThan(0);
+    });
+
+    it('should return err_http when redirect has no location header', async () => {
+      mockGet.mockResolvedValue({ status: 302, headers: {}, data: '' });
+      const { error } = await scraper.getWordData('test');
+      expect(error).toBe('err_http_302');
+    });
+
+    it('should follow redirect after 404 retry with _1', async () => {
+      mockGet
+        .mockResolvedValueOnce({ status: 404, data: '' })
+        .mockResolvedValueOnce({ status: 302, headers: { location: 'https://www.oxfordlearnersdictionaries.com/definition/english/test_2' }, data: '' })
+        .mockResolvedValueOnce({ status: 200, data: NORMAL_PAGE_HTML });
+      const { meanings, error } = await scraper.getWordData('test');
+      expect(error).toBeNull();
+      expect(meanings.length).toBeGreaterThan(0);
+    });
+
+    it('should follow redirect after 404+_1 redirects to final', async () => {
+      mockGet
+        .mockResolvedValueOnce({ status: 404, data: '' })
+        .mockResolvedValueOnce({ status: 302, headers: { Location: '/definition/english/test_2' }, data: '' })
+        .mockResolvedValueOnce({ status: 200, data: NORMAL_PAGE_HTML });
+      const { meanings, error } = await scraper.getWordData('test');
+      expect(error).toBeNull();
+      expect(meanings.length).toBeGreaterThan(0);
+    });
+  });
+
   // ── Error paths ───────────────────────────────────────────────────────
   describe('error handling', () => {
     it('should retry on 404 and succeed if retry returns 200', async () => {
@@ -364,10 +562,18 @@ describe('Infrastructure / OxfordScraperAdapter', () => {
       expect(meanings.length).toBeGreaterThan(0);
     });
 
-    it('should retry on 404 and fail with err_http if retry also fails', async () => {
+    it('should try multiple suffixes on 404 until one succeeds', async () => {
       mockGet
         .mockResolvedValueOnce({ status: 404, data: '' })
-        .mockResolvedValueOnce({ status: 404, data: '' });
+        .mockResolvedValueOnce({ status: 404, data: '' })
+        .mockResolvedValueOnce({ status: 200, data: NORMAL_PAGE_HTML });
+      const { meanings, error } = await scraper.getWordData('retry');
+      expect(error).toBeNull();
+      expect(meanings.length).toBeGreaterThan(0);
+    });
+
+    it('should retry on 404 and fail with err_http if retry also fails', async () => {
+      mockGet.mockResolvedValue({ status: 404, data: '' });
       const { error } = await scraper.getWordData('xyzzy');
       expect(error).toBe('err_http_404');
     });

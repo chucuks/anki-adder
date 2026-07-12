@@ -21,7 +21,7 @@ export class ResultListView extends BaseComponent implements IResultListView {
         };
     }
 
-    renderMeanings(meanings: WordMeaning[], selectedIndices: Set<number>, existingIndices: Set<number>, showIdioms: boolean): void {
+    renderMeanings(meanings: WordMeaning[], selectedIndices: Set<number>, existingIndices: Set<number>, showIdioms: boolean, highlightedExamples?: string[]): void {
         if (!this.elements.meaningsList) return;
 
         if (meanings.length === 0) {
@@ -46,29 +46,38 @@ export class ResultListView extends BaseComponent implements IResultListView {
         sorted.forEach(({ m, i }) => {
             if (m.type === 'idiom' && !showIdioms) return;
 
-            const item = document.createElement('div');
-            item.className = 'meaning-item';
-            item.setAttribute('data-index', i.toString()); // Keep data-index for tests
-            if (selectedIndices.has(i)) item.classList.add('selected');
-            if (existingIndices.has(i)) item.classList.add('existing');
+            try {
+                const item = document.createElement('div');
+                item.className = 'meaning-item';
+                item.setAttribute('data-index', i.toString());
+                if (selectedIndices.has(i)) item.classList.add('selected');
+                if (existingIndices.has(i)) item.classList.add('existing');
 
-            const posClass = m.pos.toLowerCase().replace(/[^a-z\s-]/g, '').replace(/\s+/g, '-');
-            const highlightedExample = HighlightingService.getHighlightedExample(m);
+                const posClass = m.pos.toLowerCase().replace(/[^a-z\s-]/g, '').replace(/\s+/g, '-');
+                const highlightedExample = highlightedExamples?.[i] ?? HighlightingService.getHighlightedExample(m);
 
-            item.innerHTML = `
-                <div class="meaning-header">
-                    ${m.type === 'idiom' ? 
-                        `<span class="pos-badge idiom">${this.escapeHTML(m.idiomText || 'IDIOM')}</span>` : 
-                        `<span class="pos-badge ${posClass}">${this.escapeHTML(m.pos)}</span>`
-                    }
-                </div>
-                <div class="definition">${this.escapeHTML(m.definition).replace(/\n/g, '<br>')}</div>
-                ${highlightedExample ? `<div class="example-text">${highlightedExample}</div>` : ''}
-                ${existingIndices.has(i) ? `<div class="already-added">${this.t('exists')}</div>` : ''}
-            `;
+                item.innerHTML = `
+                    <div class="meaning-header">
+                        ${m.type === 'idiom' ? 
+                            `<span class="pos-badge idiom">${this.escapeHTML(m.idiomText || 'IDIOM')}</span>` : 
+                            `<span class="pos-badge ${posClass}">${this.escapeHTML(m.pos)}</span>`
+                        }
+                    </div>
+                    <div class="definition">${this.escapeHTML(m.definition).replace(/\n/g, '<br>')}</div>
+                    ${highlightedExample ? `<div class="example-text">${highlightedExample}</div>` : ''}
+                    ${existingIndices.has(i) ? `<div class="already-added">${this.t('exists')}</div>` : ''}
+                `;
 
-            this.makeInteractive(item, () => this.onMeaningClick?.(i));
-            fragment.appendChild(item);
+                this.makeInteractive(item, () => this.onMeaningClick?.(i));
+                fragment.appendChild(item);
+            } catch (e) {
+                console.error('[ResultListView] Failed to render meaning item', i, e);
+                const fallback = document.createElement('div');
+                fallback.className = 'meaning-item';
+                fallback.setAttribute('data-index', i.toString());
+                fallback.innerHTML = `<div class="definition">${this.escapeHTML(m?.definition || '?')}</div>`;
+                fragment.appendChild(fallback);
+            }
         });
 
         this.elements.meaningsList.innerHTML = '';

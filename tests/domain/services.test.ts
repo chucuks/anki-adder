@@ -330,6 +330,28 @@ describe('Domain / HighlightingService', () => {
     });
   });
 
+  // ── normalizeVariant strips trailing parenthetical content ──────────────
+  describe('normalizeVariant strips parenthetical suffix', () => {
+    it('should strip trailing (with somebody/something) from variant', () => {
+      const h = HighlightingService as any;
+      const result = h.normalizeVariant('in tandem (with somebody/something)');
+      expect(result).toBe('in tandem');
+    });
+
+    it('should strip trailing [bracketed] notes from variant', () => {
+      const h = HighlightingService as any;
+      const result = h.normalizeVariant('step up [to something]');
+      expect(result).toBe('step up');
+    });
+
+    it('should not strip parentheses that are part of the actual idiom', () => {
+      const h = HighlightingService as any;
+      // Mid-phrase parens not at the end should remain
+      const result = h.normalizeVariant('take (it) on');
+      expect(result).toBe('take (it) on');
+    });
+  });
+
   // ── Full coverage: buildVariants + score-overwrite + shortWordMatch ────
   describe('100% coverage gaps', () => {
     it('should deduplicate identical variants (L73, L83, L92)', () => {

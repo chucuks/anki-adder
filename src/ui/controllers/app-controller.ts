@@ -45,6 +45,7 @@ export class AppController {
             ...merged,
             selectedMeanings: new Set<number>(),
             searchResults: [],
+            highlightedExamples: [],
             isSearching: false,
             isAdding: false,
             existingIndices: new Set<number>(),

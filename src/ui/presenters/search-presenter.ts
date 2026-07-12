@@ -1,6 +1,7 @@
 import { VocabularyUseCase } from '../../application/use-cases';
 import { Store } from '../state/store';
 import { ISearchView, IResultListView } from './view-interfaces';
+import { HighlightingService } from '../../domain/services';
 
 export class SearchPresenter {
     private autoSearchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -35,7 +36,8 @@ export class SearchPresenter {
             this.store.subscribe('showIdioms', () => this.renderResults()),
             this.store.subscribe('language', () => this.renderResults()),
             this.store.subscribe('isSearching', (loading) => this.view.setSearchLoading(loading)),
-            this.store.subscribe('existingIndices', () => this.resultView.showExistingHint(this.computeVisibleExistingCount())),
+            this.store.subscribe('highlightedExamples', () => this.renderResults()),
+            this.store.subscribe('existingIndices', () => this.renderResults()),
             this.store.subscribe('hideExistingResults', (hide) => {
                 this.resultView.toggleExistingBadgeActive(hide);
                 this.resultView.setHideExistingClass(hide);
@@ -65,7 +67,7 @@ export class SearchPresenter {
         const hasResults = results.length > 0;
         
         this.view.toggleResultVisibility(hasResults);
-        this.resultView.renderMeanings(results, state.selectedMeanings, state.existingIndices, state.showIdioms);
+        this.resultView.renderMeanings(results, state.selectedMeanings, state.existingIndices, state.showIdioms, state.highlightedExamples);
         this.resultView.updateSelectButton(results.length > 0 && state.selectedMeanings.size === results.length, state.language);
         this.resultView.showExistingHint(this.computeVisibleExistingCount());
     }
@@ -103,18 +105,38 @@ export class SearchPresenter {
                 this.view.showStatus(error, 'error');
                 this.store.updateMany({
                     searchResults: [],
-                    selectedMeanings: new Set()
+                    selectedMeanings: new Set(),
+                    highlightedExamples: [],
+                    existingIndices: new Set(),
+                    totalExistingCount: 0
                 });
                 return;
             }
 
-            const { existing } = await this.useCase.checkExistingMeanings(meanings, state.lastSelectedDeck);
-
+            // Show results immediately with clean state (reset highlights and existing)
             this.store.updateMany({
                 searchResults: meanings,
-                existingIndices: existing,
-                selectedMeanings: new Set()
+                selectedMeanings: new Set(),
+                highlightedExamples: [],
+                existingIndices: new Set(),
+                totalExistingCount: 0
             });
+
+            // Compute highlighted examples (synchronous, per-item try-catch)
+            const highlightedExamples: string[] = [];
+            for (const m of meanings) {
+                try {
+                    highlightedExamples.push(HighlightingService.getHighlightedExample(m));
+                } catch (e) {
+                    console.error('[SearchPresenter] Highlighting failed for:', m.word, e);
+                    highlightedExamples.push('');
+                }
+            }
+            this.store.update('highlightedExamples', highlightedExamples);
+
+            // Check existing meanings in background
+            const { existing } = await this.useCase.checkExistingMeanings(meanings, state.lastSelectedDeck);
+            this.store.update('existingIndices', existing);
 
         } catch (err) {
             this.lastSearchedWord = '';
@@ -122,6 +144,11 @@ export class SearchPresenter {
             this.view.showStatus('error_occurred', 'error');
         } finally {
             this.store.update('isSearching', false);
+            // If input changed during search, trigger a new search
+            const currentInput = this.view.getWordInput().trim();
+            if (currentInput && currentInput.toLowerCase() !== this.lastSearchedWord.toLowerCase()) {
+                this.handleSearch();
+            }
         }
     }
 
@@ -130,6 +157,10 @@ export class SearchPresenter {
         if (this.autoSearchTimeout) clearTimeout(this.autoSearchTimeout);
         const state = this.store.getState();
         if (!state.autoSearchEnabled) return;
+        if (state.isSearching) {
+            // Don't schedule while searching; handleSearch's finally will pick up the new word
+            return;
+        }
 
         const word = this.view.getWordInput().trim();
         if (!word || word === this.lastSearchedWord) return;
@@ -167,6 +198,9 @@ export class SearchPresenter {
         this.store.updateMany({
             searchResults: [],
             selectedMeanings: new Set(),
+            highlightedExamples: [],
+            existingIndices: new Set(),
+            totalExistingCount: 0,
             currentWord: ''
         });
         this.view.clearResults();

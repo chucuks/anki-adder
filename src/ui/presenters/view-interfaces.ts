@@ -16,7 +16,7 @@ export interface ISearchView extends IBaseView {
 }
 
 export interface IResultListView extends IBaseView {
-    renderMeanings(meanings: WordMeaning[], selectedIndices: Set<number>, existingIndices: Set<number>, showIdioms: boolean): void;
+    renderMeanings(meanings: WordMeaning[], selectedIndices: Set<number>, existingIndices: Set<number>, showIdioms: boolean, highlightedExamples?: string[]): void;
     showExistingHint(count: number): void;
     updateSelectButton(allSelected: boolean, lang: Language): void;
     toggleExistingBadgeActive(active: boolean): void;

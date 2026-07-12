@@ -38,6 +38,10 @@ export class SearchView extends BaseComponent implements ISearchView {
     setSearchLoading(loading: boolean): void {
         if (this.elements.searchBtn) this.elements.searchBtn.disabled = loading;
         if (this.elements.wordInput) this.elements.wordInput.disabled = loading;
+        const container = this.elements.searchBtn?.closest('.search-container');
+        if (container) {
+            container.classList.toggle('loading', loading);
+        }
     }
 
     clearResults(): void {

@@ -296,6 +296,24 @@
             transform: scale(0.9);
         }
 
+        .search-container.loading::after {
+            content: '';
+            position: absolute;
+            right: 48px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--glass-border);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: search-spin 0.6s linear infinite;
+        }
+
+        @keyframes search-spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
         .btn-action-small {
             font-size: 0.85rem;
             font-weight: 800;
