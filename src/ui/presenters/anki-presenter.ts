@@ -174,7 +174,6 @@ export class AnkiPresenter {
     startAutoUpdate() {
         if (this.deckUpdateInterval) clearInterval(this.deckUpdateInterval);
         this.deckUpdateInterval = setInterval(() => this.loadDecks(), 5000);
-        this.loadDecks();
         document.addEventListener('visibilitychange', this.onVisibilityChange);
     }
 

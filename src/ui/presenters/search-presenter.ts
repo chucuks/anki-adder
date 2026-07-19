@@ -79,13 +79,29 @@ export class SearchPresenter {
         return [...state.existingIndices].filter(i => state.searchResults[i]?.type !== 'idiom').length;
     }
 
+    private normalizeInput(input: string): string {
+        return input
+            .replace(/İ/g, 'i')
+            .replace(/ı/g, 'i')
+            .replace(/Ş/g, 's')
+            .replace(/ş/g, 's')
+            .replace(/Ç/g, 'c')
+            .replace(/ç/g, 'c')
+            .replace(/Ğ/g, 'g')
+            .replace(/ğ/g, 'g')
+            .replace(/Ö/g, 'o')
+            .replace(/ö/g, 'o')
+            .replace(/Ü/g, 'u')
+            .replace(/ü/g, 'u');
+    }
+
     /* istanbul ignore next */
     async handleSearch(force = false) {
         const state = this.store.getState();
         if (state.isSearching || state.isAdding) return;
         if (this.autoSearchTimeout) clearTimeout(this.autoSearchTimeout);
 
-        const word = this.view.getWordInput().trim();
+        const word = this.normalizeInput(this.view.getWordInput().trim());
         
         if (!word) {
             this.clearSearch();
@@ -145,7 +161,7 @@ export class SearchPresenter {
         } finally {
             this.store.update('isSearching', false);
             // If input changed during search, trigger a new search
-            const currentInput = this.view.getWordInput().trim();
+            const currentInput = this.normalizeInput(this.view.getWordInput().trim());
             if (currentInput && currentInput.toLowerCase() !== this.lastSearchedWord.toLowerCase()) {
                 this.handleSearch();
             }
@@ -162,7 +178,7 @@ export class SearchPresenter {
             return;
         }
 
-        const word = this.view.getWordInput().trim();
+        const word = this.normalizeInput(this.view.getWordInput().trim());
         if (!word || word === this.lastSearchedWord) return;
 
         const delay = state.autoSearchDelayUnit === 'sec' ? state.autoSearchDelay * 1000 : state.autoSearchDelay;

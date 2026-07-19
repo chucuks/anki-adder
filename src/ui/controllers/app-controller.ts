@@ -95,6 +95,8 @@ export class AppController {
         this.ankiView.render();
         this.searchView.render();
         this.resultListView.render();
+
+        await this.ankiPresenter.loadDecks();
     }
 
     dispose() {

@@ -157,10 +157,11 @@ describe('UI / Presenters / AnkiPresenter', () => {
     it('should handle startAutoUpdate', () => {
         vi.useFakeTimers();
         presenter.startAutoUpdate();
-        expect(mockUseCase.getAvailableDecks).toHaveBeenCalled();
+        // startAutoUpdate no longer calls loadDecks immediately; only sets up interval
+        expect(mockUseCase.getAvailableDecks).not.toHaveBeenCalled();
         
         vi.advanceTimersByTime(5000);
-        expect(mockUseCase.getAvailableDecks).toHaveBeenCalledTimes(2);
+        expect(mockUseCase.getAvailableDecks).toHaveBeenCalledTimes(1);
         
         // Call again to ensure interval is cleared
         presenter.startAutoUpdate();
